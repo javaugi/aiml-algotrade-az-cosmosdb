@@ -3,6 +3,7 @@ package com.sisllc.instaiml.config;
 //import com.sisllc.instaiml.model.User;
 import com.sisllc.instaiml.repository.UserRepository;
 import com.sisllc.instaiml.security.JwtAuthFilter;
+import com.sisllc.instaiml.util.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
@@ -35,9 +37,8 @@ import reactor.core.publisher.Mono;
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
-
-    private final JwtAuthFilter jwtAuthFilter;
-    // Inject your JwtAuthFilter if it's a Bean
+    
+    private final JwtAuthFilter jwtAuthFilter; // Inject your JwtAuthFilter if it's a Bean
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter) { // Constructor injection
         this.jwtAuthFilter = jwtAuthFilter;
@@ -45,16 +46,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        //http.securityMatcher(ServerSecurityExchangeMatcher.);
-        //http.securityMatcher(PathRequest.toH2Console());
         log.info("securityWebFilterChain called ...");
         return http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-            .pathMatchers("/api/auth/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
-                "/index.html", "/static/**", "/manifest.json", "/favicon.ico",
-                "/logo192.png", "/asset-manifest.json", "/service-worker.js").permitAll() // Explicitly permit these static assets
-            .anyExchange().permitAll()
+                .pathMatchers("/api/auth/**", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                    "/index.html", "/static/**", "/manifest.json", "/favicon.ico",
+                    "/logo192.png", "/asset-manifest.json", "/service-worker.js").permitAll() // Explicitly permit these static assets
+                //.anyExchange().authenticated() // All other requests require authentication
+                .anyExchange().permitAll()
             )
             // You may also need to configure headers if the console is running on the same port,
             // but with a separate port, this is often not necessary.
@@ -64,16 +64,19 @@ public class SecurityConfig {
             // the following two are commented out for now to test
             //.formLogin(ServerHttpSecurity.FormLoginSpec::disable)
             //.httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)      
-            //
+            //            
             // Add your JwtAuthFilter here, but ensure it's *after* the static resources are handled
             // For now, let's ensure the static resources are served first.
             // If JwtAuthFilter is a @Component, its order might need to be adjusted.
             // If you add it with .addFilterAt, ensure it's at the correct position (e.g., SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION) // Assuming you want it here
+
+            // Crucial: Add a handler for the root path that explicitly serves index.html
+            // This is a common pattern for single-page applications with Spring WebFlux.
             .build();
     }
 
-    // This router function will serve index.html for the root path
+// This router function will serve index.html for the root path
     // It's a common approach to ensure the SPA entry point is always served.
     @Bean
     public RouterFunction<ServerResponse> indexRouter() {
@@ -88,12 +91,12 @@ public class SecurityConfig {
     public RouterFunction<ServerResponse> spaFallbackRouter() {
         log.info("spaFallbackRouter called ...");
         return RouterFunctions.route(RequestPredicates.GET("/**").negate()
-            .and(RequestPredicates.pathExtension("js"))
-            .and(RequestPredicates.pathExtension("css"))
-            .and(RequestPredicates.pathExtension("ico"))
-            .and(RequestPredicates.pathExtension("png"))
-            .and(RequestPredicates.pathExtension("json"))
-            .and(RequestPredicates.path("/api/**")), // Exclude API paths
+                .and(RequestPredicates.pathExtension("js"))
+                .and(RequestPredicates.pathExtension("css"))
+                .and(RequestPredicates.pathExtension("ico"))
+                .and(RequestPredicates.pathExtension("png"))
+                .and(RequestPredicates.pathExtension("json"))
+                .and(RequestPredicates.path("/api/**")), // Exclude API paths
             request -> ServerResponse.ok().contentType(MediaType.TEXT_HTML)
                 .bodyValue(new ClassPathResource("static/index.html")));
 
@@ -108,6 +111,66 @@ public class SecurityConfig {
             request -> ServerResponse.ok().contentType(MediaType.TEXT_HTML)
                 .bodyValue(new ClassPathResource("static/index.html")));
         // */
+    }   
+
+    //@Bean
+    public SecurityWebFilterChain securityWebFilterChainOld(ServerHttpSecurity http,
+        JwtUtils jwtUtils, ReactiveAuthenticationManager authenticationManager) {
+        System.out.println("securityWebFilterChain ...");
+        log.info("securityWebFilterChain ...");
+
+        // Configure authentication web filter
+        AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(authenticationManager);
+        authenticationWebFilter.setServerAuthenticationConverter(jwtAuthFilter::convert);
+        log.info("2 securityWebFilterChain ...");
+
+        return http
+            .cors(cors -> cors.disable()) // Disable default CORS handling (use CorsWebFilter instead)
+            .csrf(ServerHttpSecurity.CsrfSpec::disable) // If using JWT, CSRF can be disabled
+            //.csrf(csrf -> csrf.csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse()))
+            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+            .logout(ServerHttpSecurity.LogoutSpec::disable)
+            // Add JWT filter at the AUTHENTICATION position
+            .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            // Authorization rules
+            .authorizeExchange(exchanges -> exchanges
+            .pathMatchers("/**").permitAll() // TEMPORARY for debugging
+            .pathMatchers("/", "/api/user").permitAll() // TEMPORARY for debugging
+            //.pathMatchers("/api/user").authenticated() // Add this explicit rule
+            .pathMatchers("/public/**", "/public/static/**", "/api/health/**", "/api/public/**", "/api/v[0-9]+/.*").permitAll()
+            .pathMatchers("/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").hasIpAddress("127.0.0.1")
+            .pathMatchers("/login", "/api/auth/**").permitAll()
+            .pathMatchers("/api/admin/**").hasRole("ADMIN")
+            .pathMatchers("/admin/**", "/management/**", "/actuator/**").hasRole("ADMIN")
+            .pathMatchers("/api/user/**", "/profile/**").hasRole("USER")
+            .pathMatchers("/api/patient/**").hasAnyRole("PATIENT", "NURSE", "PHYSICIAN", "ADMIN", "PHARMACIST")
+            .pathMatchers("/api/nurse/**").hasAnyRole("NURSE", "PHYSICIAN", "ADMIN")
+            .pathMatchers("/api/physician/**").hasAnyRole("PHYSICIAN", "ADMIN")
+            .anyExchange().authenticated()
+            )
+            // Exception handling
+            /*
+            .exceptionHandling(handling -> handling
+                .authenticationEntryPoint((exchange, ex) -> 
+                    Mono.fromRunnable(() -> {
+                        log.error("authenticationEntryPoint Unauthorized {}", exchange.getPrincipal());
+                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                        exchange.getResponse().writeWith(Mono.just(exchange.getResponse()
+                            .bufferFactory().wrap("{\"error\":\"Unauthorized\"}".getBytes())));
+                    }))
+                .accessDeniedHandler((exchange, ex) -> 
+                    Mono.fromRunnable(() -> {
+                        log.error("accessDeniedHandler Forbidden {}", exchange.getPrincipal());
+                        exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+                        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                        exchange.getResponse().writeWith(Mono.just(exchange.getResponse()
+                            .bufferFactory().wrap("{\"error\":\"Forbidden\"}".getBytes())));
+                    })
+                )
+            ) */
+            .build();
     }
 
     @Bean
@@ -127,16 +190,16 @@ public class SecurityConfig {
     public ReactiveUserDetailsService userDetailsService(UserRepository userRepository) {
         log.info("userDetailsService ...");
         return username -> userRepository.findByUsername(username)
-            .map(user -> User.withUsername(user.getUsername())
-            .password(user.getPassword())
-            .roles(user.getRoles().split(","))
+            .map(user -> User.withUsername(user.username())
+            .password(user.password())
+            .roles(user.roles().split(","))
             .build());
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         log.info("passwordEncoder ...");
-        return new BCryptPasswordEncoder(12);  // Strength factor 12-31
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -191,7 +254,7 @@ This implementation provides a complete, production-ready JWT authentication set
     Reactive streams throughout the pipeline
  */
 
- /*
+/*
    
     
     public SecurityWebFilterChain securityWebFilterChainBkup(ServerHttpSecurity http,
@@ -253,4 +316,4 @@ This implementation provides a complete, production-ready JWT authentication set
             )
             .build();
     }
- */
+*/

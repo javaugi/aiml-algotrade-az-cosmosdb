@@ -4,41 +4,35 @@
  */
 package com.sisllc.instaiml.repository;
 
+import com.azure.spring.data.cosmos.repository.Query;
+import com.azure.spring.data.cosmos.repository.ReactiveCosmosRepository;
 import com.sisllc.instaiml.model.InsurancePlan;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import com.sisllc.instaiml.dto.InsurancePricingDto;
-import org.springframework.data.r2dbc.repository.Query;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 @Repository
-public interface InsurancePricingRepository extends ReactiveCrudRepository<InsurancePlan, String> {
+public interface InsurancePricingRepository extends ReactiveCosmosRepository<InsurancePlan, String> {
+    
     // Or using a Projection Interface (Requires Spring Data Projections)
     // You would define an interface like:
     // public interface ClientNameEmail { String getName(); String getEmail(); }
     //@Query("SELECT p.planType, p.tierLevel FROM insurancePlans p")
-    //@Query("${postgres.queries.testQuery}")
-    @Query(InsurancePricingQueries.QUERY_PREM_BY_PLAN_TIER)
+    @Query("${cosmos.queries.premiumByPlanTypeTierAnalysis}")
     Flux<InsurancePricingDto> premiumByPlanTypeTierAnalysis();
 
-    @Query(InsurancePricingQueries.QUERY_COST_COVERAGE)
+    @Query("${cosmos.queries.costVsCoverageAnalysis}")
     Flux<InsurancePricingDto> costVsCoverageAnalysis();
 
-    @Query(InsurancePricingQueries.QUERY_TOBACCO_SURCHARGE)
+    @Query("${cosmos.queries.tobaccoSurchargeImpactAnalysis}")
     Flux<InsurancePricingDto> tobaccoSurchargeImpactAnalysis();
 
-    @Query(InsurancePricingQueries.QUERY_MARKET_BENCHMARKING)
+    @Query("${cosmos.queries.marketBenchmarkingAnalysis}")
     Flux<InsurancePricingDto> marketBenchmarkingAnalysis();
 
-    @Query(InsurancePricingQueries.QUERY_PREMIUM_AGE)
-    Flux<InsurancePricingDto> premiumVsAgeAnalysis();     
-    
-    @Query(InsurancePricingQueries.QUERY_RISK_POOL)
+    @Query("${cosmos.queries.riskPoolAnalysis}")
     Flux<InsurancePricingDto> riskPoolAnalysis();
 
-    @Query(InsurancePricingQueries.QUERY_NETWORK_ADEQUACY)
+    @Query("${cosmos.queries.networkAdequacyImpactAnalysis}")
     Flux<InsurancePricingDto> networkAdequacyImpactAnalysis();
-
-    @Query(InsurancePricingQueries.QUERY_PREMIUM_AGE_SIMPLE)
-    Flux<InsurancePricingDto> premiumVsAgeSimpleAnalysis();
 }

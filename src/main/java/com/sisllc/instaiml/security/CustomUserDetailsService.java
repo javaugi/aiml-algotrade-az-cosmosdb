@@ -44,9 +44,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         return org.springframework.security.core.userdetails.User
-            .withUsername(user.getUsername())
-            .password(user.getPassword())
-            .authorities(Arrays.asList(user.getRoles().split(",")).stream()
+            .withUsername(user.username())
+            .password(user.password())
+            .authorities(Arrays.asList(user.roles().split(",")).stream()
                 .map(role -> new SimpleGrantedAuthority(role.trim()))
                 .collect(Collectors.toList()))
             .accountExpired(false)

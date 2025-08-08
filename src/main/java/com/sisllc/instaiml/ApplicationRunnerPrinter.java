@@ -5,7 +5,7 @@
 package com.sisllc.instaiml;
 
 import static com.sisllc.instaiml.config.AiConfig.OLLAMA_API;
-import com.sisllc.instaiml.config.DatabaseProperties;
+import com.sisllc.instaiml.config.CosmosDBProperties;
 import java.util.Arrays;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class ApplicationRunnerPrinter implements ApplicationRunner {
     @Autowired 
     private Environment env;
     @Autowired
-    protected DatabaseProperties dbProps;
+    protected CosmosDBProperties dbProps;
 
     @Override
     public void run(ApplicationArguments args) {

@@ -16,7 +16,7 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @RequiredArgsConstructor
-@RestController //Default for @RestController: JSON in/out
+@RestController
 @RequestMapping(path = "/api/inspricing")
 public class InsurancePricingAnalyticalController {
     private final InsurancePricingAnalyticalService analyticalService;
@@ -49,11 +49,5 @@ public class InsurancePricingAnalyticalController {
     @GetMapping(path = "/tobacco", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<InsurancePricingDto> tobaccoSurchargeImpactAnalysis() {
        return analyticalService.tobaccoSurchargeImpactAnalysis();
-    }    
-
-    @GetMapping(path = "/premVsAgeSimple", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Flux<InsurancePricingDto> premiumVsAgeSimpleAnalysis() {
-       return analyticalService.premiumVsAgeSimpleAnalysis();
-    }    
-    
+    }     
 }

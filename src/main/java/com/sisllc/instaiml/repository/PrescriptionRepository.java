@@ -4,13 +4,13 @@
  */
 package com.sisllc.instaiml.repository;
 
+import com.azure.spring.data.cosmos.repository.ReactiveCosmosRepository;
 import com.sisllc.instaiml.model.Prescription;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
 @Repository
-public interface PrescriptionRepository extends ReactiveCrudRepository<Prescription, String> {
+public interface PrescriptionRepository extends ReactiveCosmosRepository<Prescription, String> {
     // Find all prescriptions by patientId (partition key)
     Flux<Prescription> findByPatientId(String patientId);
 

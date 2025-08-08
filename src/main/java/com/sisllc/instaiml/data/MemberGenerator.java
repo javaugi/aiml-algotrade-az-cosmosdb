@@ -8,15 +8,11 @@ import com.sisllc.instaiml.model.Member;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.r2dbc.core.DatabaseClient;
-import reactor.core.publisher.Mono;
 
-@Slf4j
 public class MemberGenerator extends DataGeneratorBase {
 
     public static Member generate(String insurancePlanId) {
-        Member member = Member.builder()
+        return Member.builder()
             .id(UUID.randomUUID().toString())
             .insurancePlanId(insurancePlanId)
             .name(JAVA_FAKER.name().fullName())
@@ -26,40 +22,5 @@ public class MemberGenerator extends DataGeneratorBase {
             .enrollmentDate(JAVA_FAKER.date().past(JAVA_FAKER.number().numberBetween(1, 365), TimeUnit.DAYS).toInstant().atOffset(ZoneOffset.UTC))
             .terminationDate(JAVA_FAKER.date().future(JAVA_FAKER.number().numberBetween(1, 365), TimeUnit.DAYS).toInstant().atOffset(ZoneOffset.UTC))
             .build();
-        
-        return member;
     }    
-    
-    public static Member generate(DatabaseClient dbClient, String insurancePlanId) {
-        Member member = Member.builder()
-            .id(UUID.randomUUID().toString())
-            .insurancePlanId(insurancePlanId)
-            .name(JAVA_FAKER.name().fullName())
-            .gender(JAVA_FAKER.demographic().sex())
-            .tobaccoUser(JAVA_FAKER.bool().bool())
-            .birthDate(NET_FAKER.date().birthday(20, 90).toInstant().atOffset(ZoneOffset.UTC))
-            .enrollmentDate(JAVA_FAKER.date().past(JAVA_FAKER.number().numberBetween(1, 365), TimeUnit.DAYS).toInstant().atOffset(ZoneOffset.UTC))
-            .terminationDate(JAVA_FAKER.date().future(JAVA_FAKER.number().numberBetween(1, 365), TimeUnit.DAYS).toInstant().atOffset(ZoneOffset.UTC))
-            .build();
-        
-        log.trace("member {}", insert(dbClient, member).subscribe());     
-        return member;
-    }    
-    
-    public static Mono<Long> insert(DatabaseClient dbClient, Member member) {
-        return dbClient.sql("""
-            INSERT INTO members (id, insurance_plan_id, name, gender, tobacco_user, birth_date, enrollment_dDate, termination_date) 
-                    VALUES (:id, :insurancePlanId, :name, :gender, :tobaccoUser, :birthDate, :enrollmentDate, :terminationDate) 
-            """)
-            .bind("id", member.getId())
-            .bind("insurancePlanId", member.getInsurancePlanId())
-            .bind("name", member.getName())
-            .bind("gender", member.getGender())
-            .bind("tobaccoUser", member.isTobaccoUser())
-            .bind("birthDate", member.getBirthDate())
-            .bind("enrollmentDate", member.getEnrollmentDate())
-            .bind("terminationDate", member.getTerminationDate())            
-            .fetch()
-            .rowsUpdated();
-    }        
 }

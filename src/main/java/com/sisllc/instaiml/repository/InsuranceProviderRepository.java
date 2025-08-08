@@ -4,11 +4,11 @@
  */
 package com.sisllc.instaiml.repository;
 
+import com.azure.spring.data.cosmos.repository.ReactiveCosmosRepository;
 import com.sisllc.instaiml.model.InsuranceProvider;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface InsuranceProviderRepository extends ReactiveCrudRepository<InsuranceProvider, String> {
+public interface InsuranceProviderRepository extends ReactiveCosmosRepository<InsuranceProvider, String> {
     
 }

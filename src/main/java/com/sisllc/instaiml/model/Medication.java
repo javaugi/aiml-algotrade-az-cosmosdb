@@ -4,34 +4,53 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("medications")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/name/?",
+        "/description/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "medications")
 public class Medication {
     @Id
     private String id;
 
+    @PartitionKey       
     private String name;
+
     private String description;
     private String dosage;
     private String unit;
     
     @CreatedDate
-    @Column("created_date")
     private OffsetDateTime createdDate;   
 
     @LastModifiedDate
-    @Column("updated_date")
     private OffsetDateTime updatedDate;
+
+    public Medication() {
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
+        }
+        this.createdDate = OffsetDateTime.now();
+        this.updatedDate = OffsetDateTime.now();               
+    }
 }

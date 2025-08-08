@@ -14,10 +14,10 @@ import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 @Configuration
 @EnableWebFlux // Might not be strictly needed if using Spring Boot WebFlux starter, but ensures WebFlux configuration.
 public class WebFluxConfig implements WebFluxConfigurer {
-    
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        log.debug("WebFluxConfigurer addResourceHandlers");
+        log.info("WebFluxConfigurer addResourceHandlers");
         registry.addResourceHandler("/static/**")
             .addResourceLocations("classpath:/static/static/"); // Note the nested 'static/'
         registry.addResourceHandler("/*.js")

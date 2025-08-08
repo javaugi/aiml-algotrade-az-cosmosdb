@@ -4,51 +4,64 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import jakarta.persistence.Column;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("planPricings")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/insurancePlanId/?",
+        "/pricingType/?",
+        "/ageBracket/?",
+        "/coverageLevel/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "planPricings")
 public class PlanPricing {
     @Id 
     private String id;
     
-    @Column("insurance_plan_id")
+    @PartitionKey
     private String insurancePlanId;
         
-    @Column("pricing_type")
     private String pricingType; //(e.g. premium, deductible),
     
-    @Column("base_premium")
+    @Column(precision = 10, scale = 2)
     private BigDecimal basePremium;
     
-    @Column("tobacco_surcharge")
+    @Column(precision = 10, scale = 2)
     private BigDecimal tobaccoSurcharge;
     
-    @Column("family_coverage_adjustment")
+    @Column(precision = 10, scale = 2)
     private BigDecimal familyCoverageAdjustment;
     
-    @Column("misc_adjustment")
+    @Column(precision = 10, scale = 2)
     private BigDecimal miscAdjustment;
     
-    @Column("age_bracket")
     private String ageBracket;
-
-    @Column("coverage_level")
     private String coverageLevel;
     
-    @Column("effective_date")
     private OffsetDateTime effectiveDate;
-
-    @Column("expiration_date")
     private OffsetDateTime expirationDate;
 
+    public PlanPricing() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+        this.effectiveDate = OffsetDateTime.now();
+    }    
 }

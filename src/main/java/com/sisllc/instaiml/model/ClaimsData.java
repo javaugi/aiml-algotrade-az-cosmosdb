@@ -4,63 +4,71 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import jakarta.persistence.Column;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("claimsData")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/memberId/?",
+        "/providerId/?",
+        "/insurancePlanId/?",
+        "/claimStatus/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "claimsData")
 public class ClaimsData {
     @Id 
     private String id;
     
-    @Column("insurance_plan_id")
+    @PartitionKey
+    private String memberId;    
+    private String providerId;    
     private String insurancePlanId;
     
-    @Column("member_id")
-    private String memberId;    
-    
-    @Column("provider_id")
-    private String providerId;    
-    
-    @Column("billed_amount")
+    @Column(precision = 10, scale = 2)
     private BigDecimal billedAmount;
     
-    @Column("allowed_amount")
+    @Column(precision = 10, scale = 2)
     private BigDecimal allowedAmount;
     
-    @Column("paid_amount")
+    @Column(precision = 10, scale = 2)
     private BigDecimal paidAmount;
     
-    @Column("diagnosis_codes")
     private String diagnosisCodes;
-    
-    @Column("procedure_codes")
     private String procedureCodes;
     
-    @Column("claim_status")
     private String claimStatus;
-    
-    @Column("service_date")
     private OffsetDateTime serviceDate;
-    
-    @Column("claim_date")
     private OffsetDateTime claimDate;
     
     @CreatedDate
-    @Column("created_date")
     private OffsetDateTime createdDate;   
-
     @LastModifiedDate
-    @Column("updated_date")
     private OffsetDateTime updatedDate;
+    
+    public ClaimsData() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+        this.createdDate = OffsetDateTime.now();
+        this.updatedDate = OffsetDateTime.now();             
+        this.claimDate = OffsetDateTime.now();
+    }        
 }

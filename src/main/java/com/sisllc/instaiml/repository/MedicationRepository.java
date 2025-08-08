@@ -4,11 +4,11 @@
  */
 package com.sisllc.instaiml.repository;
 
+import com.azure.spring.data.cosmos.repository.ReactiveCosmosRepository;
 import com.sisllc.instaiml.model.Medication;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface MedicationRepository extends ReactiveCrudRepository<Medication, String> {
+public interface MedicationRepository extends ReactiveCosmosRepository<Medication, String> {
     
 }

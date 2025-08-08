@@ -4,52 +4,61 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("insurancePlans")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/insuranceCompanyId/?",
+        "/planName/?",
+        "/planType/?",
+        "/active/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "insurancePlans")
 public class InsurancePlan {
     @Id 
     private String id;
-        
-    @Column("insurance_company_id")
+    
+    @PartitionKey
     private String insuranceCompanyId;
         
-    @Column("plan_name")
     private String planName;
-
-    @Column("plan_type")
     private String planType;
-
-    @Column("network_type")
     private String networkType;
-
-    @Column("tier_level")
     private String tierLevel;
-
     private boolean active;
 
-    @Column("effective_date")
     private OffsetDateTime effectiveDate;
-
-    @Column("expiration_date")
     private OffsetDateTime expirationDate;
 
     @CreatedDate
-    @Column("created_date")
     private OffsetDateTime createdDate;   
-
     @LastModifiedDate
-    @Column("updated_date")
     private OffsetDateTime updatedDate;
+    
+    public InsurancePlan() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+        this.active = true;
+        this.createdDate = OffsetDateTime.now();
+        this.updatedDate = OffsetDateTime.now();                      
+        this.effectiveDate = OffsetDateTime.now();
+    }    
 }

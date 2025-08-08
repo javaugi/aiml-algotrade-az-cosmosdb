@@ -7,13 +7,11 @@ package com.sisllc.instaiml.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "postgres.queries")
-@Component("postgresQueryConfig")
-public class PostgresQueryConfig { 
+@ConfigurationProperties(prefix = "cosmos.queries")
+public class CosmosQueryConfig { 
     private String premiumByPlanTypeTierAnalysis;
     private String costVsCoverageAnalysis;
     private String tobaccoSurchargeImpactAnalysis;

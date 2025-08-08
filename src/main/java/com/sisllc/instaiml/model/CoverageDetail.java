@@ -4,59 +4,65 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import jakarta.persistence.Column;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("coverageDetails")
+@Container(containerName = "coverageDetails")
 public class CoverageDetail {
     @Id 
     private String id;
     
-    @Column("insurance_plan_id")
+    @PartitionKey
     private String insurancePlanId;
     
-    @Column("deductible_individual")
+    @Column(precision = 10, scale = 2)
     private BigDecimal deductibleIndividual;
 
-    @Column("deductible_family")
+    @Column(precision = 10, scale = 2)
     private BigDecimal deductibleFamily;
 
-    @Column("oop_max_individual")
+    @Column(precision = 10, scale = 2)
     private BigDecimal oopMaxIndividual;
 
-    @Column("oop_max_family")
+    @Column(precision = 10, scale = 2)
     private BigDecimal oopMaxFamily;
 
-    @Column("primary_care_copay")
+    @Column(precision = 10, scale = 2)
     private BigDecimal primaryCareCopay;
 
-    @Column("specialist_copay")
+    @Column(precision = 10, scale = 2)
     private BigDecimal specialistCopay;
 
-    @Column("er_copay")
+    @Column(precision = 10, scale = 2)
     private BigDecimal erCopay;
 
-    @Column("prescription_tier1")
+    @Column(precision = 10, scale = 2)
     private BigDecimal prescriptionTier1;
 
-    @Column("prescription_tier2")
+    @Column(precision = 10, scale = 2)
     private BigDecimal prescriptionTier2;
 
-    @Column("prescription_tier3")
+    @Column(precision = 10, scale = 2)
     private BigDecimal prescriptionTier3;
     
-    @Column("effective_date")
     private OffsetDateTime effectiveDate;
-
-    @Column("expiration_date")
     private OffsetDateTime expirationDate;
+
+    public CoverageDetail() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+        this.effectiveDate = OffsetDateTime.now();
+    }        
 }

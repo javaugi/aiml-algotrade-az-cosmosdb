@@ -6,7 +6,6 @@ package com.sisllc.instaiml.security;
 
 import com.sisllc.instaiml.util.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
@@ -22,12 +21,20 @@ import reactor.core.publisher.Mono;
 @Component
 public class JwtAuthFilter implements WebFilter {
 
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final JwtUtils jwtUtils;
+
+    // You don't need this authenticationConverter bean if you're directly calling filter
+    // private final ServerAuthenticationConverter authenticationConverter;
+
+    public JwtAuthFilter(JwtUtils jwtUtils) {
+        log.info("JwtAuthFilter constructor ...");
+        this.jwtUtils = jwtUtils;
+        // this.authenticationConverter = exchange -> { ... }; // Remove this if not used
+    }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-       String path = exchange.getRequest().getURI().getPath();
+        String path = exchange.getRequest().getURI().getPath();
         log.info("JwtAuthFilter filter called ... path={}", path);
 
         // IMPORTANT: Bypass filter logic for static resources
@@ -37,7 +44,7 @@ public class JwtAuthFilter implements WebFilter {
             log.debug("Bypassing JwtAuthFilter::filter for static resource: {}", path);
             return chain.filter(exchange);
         }
-        
+
         log.info("filter called for non-static path: {}", path);
         return Mono.justOrEmpty(extractToken(exchange.getRequest()))
             .doOnNext(token -> log.info("Token found: {}", token))
@@ -72,10 +79,9 @@ public class JwtAuthFilter implements WebFilter {
             .filterWhen(jwtUtils::validateToken)
             .flatMap(jwtUtils::getAuthentication);
     }
-
+    
     private boolean pathSpecial(String path) {
-        if (path.startsWith("/logo") || path.startsWith("/api/")
-            || //path.startsWith("/api/user") || path.startsWith("/api/auth") ||
+        if (path.startsWith("/logo") || path.startsWith("/api/user") || path.startsWith("/api/auth") ||
             path.startsWith("/public") || path.startsWith("/static/") || path.startsWith("/index") || 
             path.startsWith("/service") || path.startsWith("/manifest") || path.startsWith("/favicon") || 
             path.startsWith("/asset-manifest")) {
@@ -85,7 +91,7 @@ public class JwtAuthFilter implements WebFilter {
         
         return false;
     }
-    
+
     private String extractToken(ServerHttpRequest request) {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         log.info("extractToken authHeader={} hasNext={}", authHeader, StringUtils.hasText(authHeader));

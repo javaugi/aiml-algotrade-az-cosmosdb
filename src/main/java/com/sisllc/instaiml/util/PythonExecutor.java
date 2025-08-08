@@ -10,12 +10,10 @@ public class PythonExecutor {
     public static final PythonInterpreter PY_EXEC = new PythonInterpreter();
     
     /*
-    public static void main(String[] args) {
-        
+    public static void main(String[] args) {        
         PY_EXEC.exec("print('Hello from Jython')");
     }
     // */
-    
     public static void run(String pgm) {
         PY_EXEC.exec(pgm);
     }

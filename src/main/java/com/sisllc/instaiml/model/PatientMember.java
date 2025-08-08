@@ -4,25 +4,39 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("patientMembers")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/patientId/?",
+        "/memberId/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "patientMembers")
 public class PatientMember {
     @Id
+    @PartitionKey
     private String id;
     
-    @Column("patient_id")
     private String patientId;
-
-    @Column("member_id")
     private String memberId;
- 
+    
+    public PatientMember() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+    }            
 }

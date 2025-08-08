@@ -4,42 +4,54 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import jakarta.persistence.Column;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
     @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("geographicPricings")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/insurancePlanId/?",
+        "/stateAbbr/?",
+        "/zipCode/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "geographicPricings")
 public class GeographicPricing {
     @Id 
     private String id;
     
-    @Column("insurance_plan_id")
+    @PartitionKey
     private String insurancePlanId;
         
-    @Column("zip_code")
-    private String zipCode;
-
-    @Column("state_abbr")
     private String stateAbbr;
+    private String zipCode;
     
-    @Column("adjustment_factor")
+    @Column(precision = 10, scale = 2)
     private BigDecimal adjustmentFactor;
     
-    @Column("rating_area")
     private int ratingArea;
 
-    @Column("effective_date")
     private OffsetDateTime effectiveDate;
-
-    @Column("expiration_date")
     private OffsetDateTime expirationDate;
 
+    public GeographicPricing() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+        this.effectiveDate = OffsetDateTime.now();
+    }    
 }

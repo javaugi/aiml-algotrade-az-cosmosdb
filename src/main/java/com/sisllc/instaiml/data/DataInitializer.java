@@ -4,120 +4,95 @@
  */
 package com.sisllc.instaiml.data;
 
-import com.sisllc.instaiml.config.DatabaseProperties;
+import com.azure.cosmos.CosmosClient;
+import com.azure.cosmos.models.CosmosContainerProperties;
+import com.azure.cosmos.models.IncludedPath;
+import com.azure.cosmos.models.IndexingMode;
+import com.azure.cosmos.models.IndexingPolicy;
+import com.azure.cosmos.models.ThroughputProperties;
 import com.sisllc.instaiml.service.InsurancePricingAnalyticalService;
-import io.r2dbc.spi.ConnectionFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import com.sisllc.instaiml.service.PrescriptionAnalyticalService;
+import java.util.Arrays;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringBootVersion;
-import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
+@RequiredArgsConstructor
 @Component
-public class DataInitializer implements ApplicationRunner{
-    private static final String TRUNC_TABLE = "TRUNCATE TABLE %s CASCADE";
+@Profile({"default", "dev", "test", "qa", "snapshot", "staging"})
+public class DataInitializer {
     
-    @Autowired
-    protected DatabaseProperties dbProps;
-    @Autowired 
-    private ConnectionFactory connFactory;    
-    @Autowired
-    private DataGeneratorService dataGenService; 
-    @Autowired
-    private InsurancePricingAnalyticalService anylyticalService;
+    //private final CosmosTemplate cosmosTemplate;
+    //private final ReactiveCosmosTemplate reactiveCosmosTemplate; // For async
+    private final CosmosClient cosmosClient;
+    private final DataGeneratorService dataGenService;
+    private final InsurancePricingAnalyticalService anylyticalService;
+    private final PrescriptionAnalyticalService presAnalyticalService;
     
-    private DatabaseClient dbClient;
-    private String databaseUsed;
-    
-    @Override
-    public void run(ApplicationArguments args) {
-        log.debug("DataInitializer Spring Boot {} skipDataInit {} database {}", SpringBootVersion.getVersion(), dbProps.getSkipDataInit(), dbProps.getDatabaseUsed());
-        if (dbProps.getSkipDataInit()) {
-            return;
-        }
-
-        dbClient = DatabaseClient.create(connFactory);        
-        this.databaseUsed = dbProps.getDatabaseUsed();
-
-        log.debug("createTables ... ");  
-        createTables();
-        log.debug("Done createTables ");  
-
-        if (dbProps.getSetupMockUserOnly()) {
-            dataGenService.seedDataUserOnly();
-        } else {
-            dataGenService.seedData();
-        }
-        log.debug("Done seedData ");  
+    @Value("${azure.cosmos.database}")
+    private String databaseName;
+       
+    @EventListener(ApplicationReadyEvent.class)
+    public void initContainers() {
+        log.info("initContainers ... databaseName={}",databaseName);
+        createContainers();
+        
+        dataGenService.seedData();
+        log.info("initContainers seedData Done.");
         anylyticalService.performAnalytics();
-        log.debug("Done all DataInitializer Spring Boot {} database {}", SpringBootVersion.getVersion(), this.databaseUsed);  
+        log.info("initContainers anylyticalService.performAnalytics Done.");
+        presAnalyticalService.performAnalytics();
+        log.info("All Done");
     }
     
-    protected void createTables() {
-        boolean tableExists;
-        String ddlSql;
-        
-        for (String table: DDL_TABLES) {
-            tableExists = checkTableExists(table);
-            if (tableExists) {
-                if (dbProps.getTruncateMockData()) {
-                    ddlSql = String.format(TRUNC_TABLE, table);
-                    if (!ddlSql.isEmpty()) {
-                        truncateTableBySql(ddlSql);
-                    }
-                }
-            } else {
-                ddlSql = getDdlSql(table);
-                if (!ddlSql.isEmpty()) {
-                    addTableBySql(ddlSql);
-                }
-            }
-        }        
-    }
-    
-    private void truncateTableBySql(String sql) {
-        dbClient.sql(sql).then().block();
-    }
-    
-    private String getDdlSql(String table) {        
-        StringBuilder sb = new StringBuilder();
-        try{
-            InputStream inputStream = getClass().getResourceAsStream(dbProps.getDdlSchemaDir() + table + ".sql");
-            sb.append(new String(inputStream.readAllBytes()));
-        } catch(IOException ex) {
-            log.error("Error getDdlSql table {}", table, ex);
-        }
-        
-        return sb.toString();
-    }
-    
-    private void addTableBySql(String sql) {
-        dbClient.sql(sql).then().block(); // Blocking here is okay for initialization
-    }
-    
-    private Boolean checkTableExists(String tableName) {
-        return checkPgTableExists(tableName);
-    }
-    
-    private Boolean checkPgTableExists(String tableName) {
-        return dbClient.sql("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = $1
-            )
-            """)
-            .bind(0, tableName.toLowerCase())
-            .map(row -> row.get(0, Boolean.class))
-            .one().defaultIfEmpty(false).block();
-    }    
+    public void createContainers() {        
+        cosmosClient.createDatabaseIfNotExists(databaseName);
 
-    public static final List<String> DDL_TABLES = List.of("users", "patients", "medications", "physicians", "pharmacies",
-        "drugInventories", "prescriptions", "insuranceCompanies", "insuranceProviders", "insurancePlans", 
-        "members", "patientMembers", "planPricings", "coverageDetails", "geographicPricings", "claimsData");
+        // Create containers
+        createContainerIfNotExists("users", "/id");
+
+        createContainerIfNotExists("drugInventories", "/medicationId");
+        createContainerIfNotExists("medications", "/name");
+        createContainerIfNotExists("patients", "/name");
+        createContainerIfNotExists("physicians", "/name");
+        createContainerIfNotExists("pharmacies", "/pharmacyCode");
+        createContainerIfNotExists("prescriptions", "/patientId");
+        
+        createContainerIfNotExists("claimsData", "/memberId");
+        createContainerIfNotExists("coverageDetails", "/insurancePlanId");
+        createContainerIfNotExists("geographicPricings", "/insurancePlanId");
+        createContainerIfNotExists("insuranceCompanies", "/companyCode");
+        createContainerIfNotExists("insurancePlans", "/insuranceCompanyId");
+        createContainerIfNotExists("insuranceProviders", "/providerName");
+        createContainerIfNotExists("members", "/insurancePlanId");
+        createContainerIfNotExists("planPricings", "/insurancePlanId");
+        createContainerIfNotExists("patientMembers", "/id");
+    }    
+    
+    private void createContainerIfNotExists(String containerName, String partitionKeyPath) {
+        log.info("createContainerIfNotExists ... containerName={}, partitionKeyPath={}",containerName, partitionKeyPath);
+        CosmosContainerProperties containerProperties = 
+            new CosmosContainerProperties(containerName, partitionKeyPath);
+        
+        // Optional: Configure indexing policy
+        IndexingPolicy indexingPolicy = new IndexingPolicy();
+        indexingPolicy.setAutomatic(true);
+        indexingPolicy.setIndexingMode(IndexingMode.CONSISTENT);
+        indexingPolicy.setIncludedPaths(Arrays.asList(new IncludedPath("/*")));
+        containerProperties.setIndexingPolicy(indexingPolicy);
+
+        // Set throughput (400 RU/s minimum)
+        ThroughputProperties throughputProperties = 
+            ThroughputProperties.createManualThroughput(400);
+
+        cosmosClient.getDatabase(databaseName)
+            .createContainerIfNotExists(containerProperties, throughputProperties);
+        log.info("Done createContainerIfNotExists for containerName={}",containerName);
+    }    
+    
 }

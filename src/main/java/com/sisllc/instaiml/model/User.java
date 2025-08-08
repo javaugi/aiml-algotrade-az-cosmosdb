@@ -1,74 +1,50 @@
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
 import java.time.OffsetDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import java.util.UUID;
+import lombok.Builder;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import reactor.core.publisher.Mono;
 
-@Data
 @Builder(toBuilder = true)
-@AllArgsConstructor
-@Table("users")
-public class User {
+@Container(containerName = "users")
+public record User(
+        @Id
+        @PartitionKey
+        String id,
+    
+        String name,
+        String username,
+        String password,
+        String roles,
 
-    @Id
-    private String id;
+        String email,
+        String phone,
 
-    private String name;
-    private String username;
 
-    @Column("password")
-    private String password;
-    private String roles;
+        String firstName,
 
-    private String email;
-    private String phone;
+        String lastName,
 
-    @Column("first_name")
-    private String firstName;
+        int age,
 
-    @Column("last_name")
-    private String lastName;
+        String city,
+        
+        @CreatedDate
+        OffsetDateTime createdDate, 
 
-    private int age;
+        @LastModifiedDate
+        OffsetDateTime updatedDate
 
-    private String city;
-
-    @CreatedDate
-    @Column("created_date")
-    private OffsetDateTime createdDate;   
-
-    @LastModifiedDate
-    @Column("updated_date")
-    private OffsetDateTime updatedDate;
-
-    // ===== REACTIVE PASSWORD HANDLING =====
-    public static Mono<User> withHashedPassword(User user, PasswordEncoder encoder) {
-        return Mono.just(user)
-            .map(u -> {
-                u.setPassword(encoder.encode(u.getPassword()));
-                return u;
-            });
-    }
-
-    // ===== REACTIVE PASSWORD HANDLING =====
-    public static Mono<User> withHashedPassword(User user, String hashedPassword) {
-        return Mono.just(user)
-            .map(u -> {
-                u.setPassword(hashedPassword);
-                return u;
-            });
-    }
-
-    // Password verification
-    public Mono<Boolean> verifyPassword(String rawPassword, PasswordEncoder encoder) {
-        return Mono.just(encoder.matches(rawPassword, this.password));
+) {
+    // Compact constructor (Java 17+).
+    // Auto-generate ID if it's null or blank.
+    public User {
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
+        }
     }
 }

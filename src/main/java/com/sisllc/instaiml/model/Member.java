@@ -4,40 +4,55 @@
  */
 package com.sisllc.instaiml.model;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.CosmosIndexingPolicy;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import jakarta.persistence.Column;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-@Table("members")
+@CosmosIndexingPolicy(
+    includePaths = {
+        "/insurancePlanId/?",
+        "/name/?",
+        "/gender/?",
+        "/birthDate/?"
+    },
+    excludePaths = {
+        "/*"
+    }
+)
+@Container(containerName = "members")
 public class Member {
     @Id 
     private String id;
     
-    @Column("insurance_plan_id")
+    @PartitionKey
     private String insurancePlanId;
     
     private String name;
     private String gender;
     private String address;
     
-    @Column("tobacco_user")
+    @Column(name = "tobacco_user")
     private boolean tobaccoUser;
     
-    @Column("birth_date")
     private OffsetDateTime birthDate;
-
-    @Column("enrollment_date")
     private OffsetDateTime enrollmentDate;
-
-    @Column("termination_date")
     private OffsetDateTime terminationDate;
+
+    public Member() {
+        if (id == null || id.isBlank()) {
+           id = UUID.randomUUID().toString();
+        }
+    }        
 
 }

@@ -19,7 +19,7 @@ public class DataGeneratorBase {
         "Emergency medicine", "Family medicine", "Internal medicine", "Medical genetics", "Neurology", "Nuclear medicine", "Obstetrics and gynecology",
         "Ophthalmology", "Pathology", "Pediatrics", "Physical medicine and rehabilitation", "Preventive medicine", "Psychiatry", "Radiation oncology",
         "Surgery", "Urology");
-
+    
     protected static String generateAgeGroupBracket() {
         StringBuilder sb = new StringBuilder();
         int ndx = JAVA_FAKER.number().numberBetween(0, 6);
@@ -39,7 +39,7 @@ public class DataGeneratorBase {
         }
         return sb.toString();
     }
-   
+    
     protected static String getStateAbbr() {
         String stateAbbr = NET_FAKER.address().stateAbbr();
         if (StringUtils.isNotEmpty(stateAbbr)) {
@@ -55,5 +55,5 @@ public class DataGeneratorBase {
             return zipCode;
         }        
         return "48198";
-    }    
+    }
 }

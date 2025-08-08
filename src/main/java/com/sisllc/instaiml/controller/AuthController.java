@@ -9,8 +9,9 @@ import com.sisllc.instaiml.dto.LoginResponse;
 import com.sisllc.instaiml.util.JwtUtils;
 import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -26,17 +27,18 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final JwtUtils jwtUtils;
-    private final ReactiveAuthenticationManager authenticationManager;
+    @Autowired
+    JwtUtils jwtUtils;
+    @Autowired
+    private ReactiveAuthenticationManager authenticationManager;
     
     @GetMapping("/me")
     public Mono<Map<String, Object>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        log.debug("AuthController getCurrentUser {}", userDetails);
+        log.info("AuthController getCurrentUser {}", userDetails);
         if (userDetails == null) {
             return Mono.empty(); // Or return 401 if no user is authenticated
         }
@@ -51,25 +53,23 @@ public class AuthController {
     
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> login(@RequestBody LoginRequest request) {
-        log.debug("AuthController login {}", request);
-
-        if (true) {
-            return Mono.just(ResponseEntity.ok(new LoginResponse("login done")));
-        } else {
-            return authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            ).flatMap(auth -> {
-                String jwt = jwtUtils.generateToken(auth).block();
-                return Mono.just(ResponseEntity.ok(new LoginResponse(jwt)));
-            }).onErrorResume(e -> Mono.just(
-                ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-            ));
-        }
-    }
+        log.info("AuthController login {}", request);       
+        return Mono.just(ResponseEntity.ok(new LoginResponse("login done")));
+        /*
+        return authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        ).flatMap(auth -> {
+            String jwt = jwtUtils.generateToken(auth).block();
+            return Mono.just(ResponseEntity.ok(new LoginResponse(jwt)));
+        }).onErrorResume(e -> Mono.just(
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        ));
+        // */
+    }    
 
     @PostMapping("/logout")
     public Mono<ResponseEntity<String>> logout() {
-        log.debug("AuthController logout ");       
+        log.info("AuthController logout ");       
         return ReactiveSecurityContextHolder.getContext()
         .flatMap(securityContext -> {
             ReactiveSecurityContextHolder.clearContext();

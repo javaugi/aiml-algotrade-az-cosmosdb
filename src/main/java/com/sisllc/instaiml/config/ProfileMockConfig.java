@@ -4,15 +4,15 @@
  */
 package com.sisllc.instaiml.config;
 
+import static com.sisllc.instaiml.config.ProfileMockConfig.MOCK_PROFILE;
 import java.io.Serializable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.Profiles;
 
-@Profile(ProfileMockConfig.MOCK_PROFILE)
+@Profile(MOCK_PROFILE)
 @Configuration
 public class ProfileMockConfig implements Serializable {
     private static final long serialVersionUID = 35238717363L;
     public static final String MOCK_PROFILE = "mock";
-    public static final Profiles MOCK_PROFILES = Profiles.of("mock", "default", "DEFAULT");
+    
 }

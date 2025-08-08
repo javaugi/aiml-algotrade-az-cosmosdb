@@ -2,6 +2,6 @@ spring:
   main:
     allow-circular-references: true
   profiles:
-    default: mock    
-#  config:
-#    import: postgres-queries.yml
+    default: dev    
+  config:
+    import: cosmos-queries.yml
